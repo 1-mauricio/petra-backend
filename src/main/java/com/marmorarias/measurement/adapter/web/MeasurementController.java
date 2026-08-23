@@ -51,7 +51,7 @@ public class MeasurementController {
         return measurementService.listar(currentTenant.get());
     }
 
-    @PostMapping("/measurements")
+    @PostMapping("/medicoes")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('admin', 'producao')")
     public MeasurementEntity registrar(@RequestBody RegistrarMedicaoRequest request) {
@@ -76,7 +76,7 @@ public class MeasurementController {
      * controller, não dentro do MeasurementService, para não criar uma dependência circular entre
      * os contextos measurement e orders (orders já depende de measurement para o guard de PRODUCAO).
      */
-    @PostMapping("/measurements/{id}/aprovar")
+    @PostMapping("/medicoes/{id}/aprovar")
     @PreAuthorize("hasAnyRole('admin', 'producao')")
     public MeasurementApprovalResult aprovar(@PathVariable UUID id, @RequestBody AprovarMedicaoRequest request) {
         TenantContext tenant = currentTenant.get();

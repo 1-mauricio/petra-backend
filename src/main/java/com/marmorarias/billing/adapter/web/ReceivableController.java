@@ -36,9 +36,6 @@ public class ReceivableController {
                                            LocalDate primeiroVencimento) {
     }
 
-    public record RegisterPaymentRequest(BigDecimal valor, String formaPagamento) {
-    }
-
     public record BaixaRequest(String formaPagamento) {
     }
 
@@ -64,13 +61,5 @@ public class ReceivableController {
     public ReceivableEntity criar(@RequestBody CreateReceivableRequest request) {
         return billingReceivableService.criar(currentTenant.get(), request.orderId(), request.valorTotal(),
                 request.numeroParcelas(), request.primeiroVencimento());
-    }
-
-    @PostMapping("/installments/{id}/payments")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('admin', 'comercial')")
-    public PaymentEntity registrarPagamento(@PathVariable UUID id, @RequestBody RegisterPaymentRequest request) {
-        return billingReceivableService.registrarPagamento(currentTenant.get(), id, request.valor(),
-                request.formaPagamento());
     }
 }

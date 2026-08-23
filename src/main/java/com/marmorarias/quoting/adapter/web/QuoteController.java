@@ -157,33 +157,16 @@ public class QuoteController {
         quoteService.removerItem(currentTenant.get(), versionId, itemId);
     }
 
-    @PostMapping("/quotes")
+    @PostMapping("/orcamentos")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('admin', 'comercial')")
     public QuoteVersionEntity criar(@RequestBody CriarOrcamentoRequest request) {
         return quoteService.criarOrcamento(currentTenant.get(), request);
     }
 
-    @PutMapping("/quotes/{quoteId}")
+    @PutMapping("/orcamentos/{quoteId}")
     @PreAuthorize("hasAnyRole('admin', 'comercial')")
     public QuoteVersionEntity revisar(@PathVariable UUID quoteId, @RequestBody CriarOrcamentoRequest request) {
         return quoteService.revisar(currentTenant.get(), quoteId, request);
-    }
-
-    @GetMapping("/quote-versions/{id}")
-    public QuoteVersionEntity buscar(@PathVariable UUID id) {
-        return quoteService.buscarVersao(currentTenant.get(), id);
-    }
-
-    @PostMapping("/quote-versions/{id}/enviar")
-    @PreAuthorize("hasAnyRole('admin', 'comercial')")
-    public void enviar(@PathVariable UUID id) {
-        quoteService.enviar(currentTenant.get(), id);
-    }
-
-    @PostMapping("/quote-versions/{id}/aprovar")
-    @PreAuthorize("hasAnyRole('admin', 'comercial')")
-    public void aprovar(@PathVariable UUID id) {
-        quoteService.aprovar(currentTenant.get(), id);
     }
 }

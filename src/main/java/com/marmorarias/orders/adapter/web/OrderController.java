@@ -36,9 +36,6 @@ public class OrderController {
     public record CreateOrderRequest(UUID customerId, UUID quoteVersionId) {
     }
 
-    public record TransitionRequest(OrderState target, String motivo) {
-    }
-
     public record CancelRequest(BigDecimal taxaMedicao, String motivo) {
     }
 
@@ -66,6 +63,7 @@ public class OrderController {
     }
 
     @PostMapping("/pedidos/{id}/transicoes")
+    @PreAuthorize("hasAnyRole('admin', 'comercial', 'producao')")
     public CustomerOrderEntity aplicarTransicao(@PathVariable UUID id, @RequestBody NovaTransicaoRequest request) {
         return orderService.transicionar(currentTenant.get(), id, request.toState(), null);
     }
@@ -77,12 +75,8 @@ public class OrderController {
         return orderService.criarPedido(currentTenant.get(), request.customerId(), request.quoteVersionId());
     }
 
-    @PostMapping("/orders/{id}/transitions")
-    public CustomerOrderEntity transicionar(@PathVariable UUID id, @RequestBody TransitionRequest request) {
-        return orderService.transicionar(currentTenant.get(), id, request.target(), request.motivo());
-    }
-
     @PostMapping("/orders/{id}/cancel")
+    @PreAuthorize("hasAnyRole('admin', 'comercial')")
     public CustomerOrderEntity cancelar(@PathVariable UUID id, @RequestBody CancelRequest request) {
         return orderService.cancelar(currentTenant.get(), id, request.taxaMedicao(), request.motivo());
     }

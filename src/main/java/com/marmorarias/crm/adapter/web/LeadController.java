@@ -33,9 +33,6 @@ public class LeadController {
     public record CreateLeadRequest(UUID customerId, String origem) {
     }
 
-    public record MotivoRequest(String motivo) {
-    }
-
     public record UpdateStatusRequest(LeadStatus status, String motivoPerda) {
     }
 
@@ -55,17 +52,5 @@ public class LeadController {
     @PreAuthorize("hasAnyRole('admin', 'comercial')")
     public LeadEntity criar(@RequestBody CreateLeadRequest request) {
         return crmService.criarLead(currentTenant.get(), request.customerId(), request.origem());
-    }
-
-    @PostMapping("/leads/{id}/ganho")
-    @PreAuthorize("hasAnyRole('admin', 'comercial')")
-    public LeadEntity marcarGanho(@PathVariable UUID id) {
-        return crmService.marcarLeadGanho(currentTenant.get(), id);
-    }
-
-    @PostMapping("/leads/{id}/perdido")
-    @PreAuthorize("hasAnyRole('admin', 'comercial')")
-    public LeadEntity marcarPerdido(@PathVariable UUID id, @RequestBody MotivoRequest request) {
-        return crmService.marcarLeadPerdido(currentTenant.get(), id, request.motivo());
     }
 }
