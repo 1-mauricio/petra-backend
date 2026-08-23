@@ -54,8 +54,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, BillingAccessGateFilter billingAccessGateFilter)
-            throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, BillingAccessGateFilter billingAccessGateFilter,
+                                            TenantContextLoggingFilter tenantContextLoggingFilter) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -64,7 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .addFilterAfter(billingAccessGateFilter, BearerTokenAuthenticationFilter.class);
+                .addFilterAfter(tenantContextLoggingFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(billingAccessGateFilter, TenantContextLoggingFilter.class);
         return http.build();
     }
 
