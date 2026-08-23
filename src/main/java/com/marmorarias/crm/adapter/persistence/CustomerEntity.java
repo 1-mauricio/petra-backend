@@ -51,6 +51,13 @@ public class CustomerEntity {
         this.telefone = telefone;
     }
 
+    public void atualizarDados(String nome, String cpfCnpj, String email, String telefone) {
+        this.nome = nome;
+        this.cpfCnpj = cpfCnpj;
+        this.email = email;
+        this.telefone = telefone;
+    }
+
     public UUID getId() {
         return id;
     }

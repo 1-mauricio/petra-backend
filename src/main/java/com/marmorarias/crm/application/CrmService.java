@@ -49,6 +49,25 @@ public class CrmService {
     }
 
     @Transactional
+    public CustomerEntity atualizarCustomer(TenantContext tenant, UUID customerId, String nome, String cpfCnpj,
+                                             String email, String telefone) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        CustomerEntity customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NoSuchElementException("Cliente não encontrado: " + customerId));
+        customer.atualizarDados(nome, cpfCnpj, email, telefone);
+        return customer;
+    }
+
+    @Transactional
+    public void deletarCustomer(TenantContext tenant, UUID customerId) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        if (!customerRepository.existsById(customerId)) {
+            throw new NoSuchElementException("Cliente não encontrado: " + customerId);
+        }
+        customerRepository.deleteById(customerId);
+    }
+
+    @Transactional
     public LeadEntity criarLead(TenantContext tenant, UUID customerId, String origem) {
         rlsContext.setCurrentOrg(tenant.organizationId());
         return leadRepository.save(new LeadEntity(tenant.organizationId(), customerId, origem));
