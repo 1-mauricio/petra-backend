@@ -38,6 +38,9 @@ public class DeliveryEntity {
     @Column(name = "data_entrega")
     private Instant dataEntrega;
 
+    @Column(name = "comprovante_url")
+    private String comprovanteUrl;
+
     protected DeliveryEntity() {
     }
 
@@ -68,9 +71,18 @@ public class DeliveryEntity {
         return dataEntrega;
     }
 
+    public String getComprovanteUrl() {
+        return comprovanteUrl;
+    }
+
     public void marcarEntregue() {
         this.status = DeliveryStatus.ENTREGUE;
         this.dataEntrega = Instant.now();
+    }
+
+    public void registrarComprovante(String url) {
+        this.comprovanteUrl = url;
+        marcarEntregue();
     }
 
     public void atualizarStatus(DeliveryStatus status) {

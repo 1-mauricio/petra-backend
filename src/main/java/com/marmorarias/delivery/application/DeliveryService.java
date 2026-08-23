@@ -1,5 +1,6 @@
 package com.marmorarias.delivery.application;
 
+import com.marmorarias.channels.StoragePort;
 import com.marmorarias.delivery.adapter.persistence.DeliveryEntity;
 import com.marmorarias.delivery.adapter.persistence.DeliveryRepository;
 import com.marmorarias.delivery.domain.DeliveryStatus;
@@ -17,10 +18,12 @@ public class DeliveryService {
 
     private final RlsContext rlsContext;
     private final DeliveryRepository deliveryRepository;
+    private final StoragePort storagePort;
 
-    public DeliveryService(RlsContext rlsContext, DeliveryRepository deliveryRepository) {
+    public DeliveryService(RlsContext rlsContext, DeliveryRepository deliveryRepository, StoragePort storagePort) {
         this.rlsContext = rlsContext;
         this.deliveryRepository = deliveryRepository;
+        this.storagePort = storagePort;
     }
 
     @Transactional
@@ -51,6 +54,18 @@ public class DeliveryService {
         } else {
             delivery.atualizarStatus(status);
         }
+        return delivery;
+    }
+
+    @Transactional
+    public DeliveryEntity registrarComprovante(TenantContext tenant, UUID deliveryId, byte[] conteudo,
+                                                String contentType, String extensao) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        DeliveryEntity delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new NoSuchElementException("Entrega não encontrada: " + deliveryId));
+        String path = tenant.organizationId() + "/" + deliveryId + "-" + Instant.now().toEpochMilli() + extensao;
+        String url = storagePort.upload(path, conteudo, contentType);
+        delivery.registrarComprovante(url);
         return delivery;
     }
 }
