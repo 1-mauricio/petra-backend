@@ -1,5 +1,8 @@
 package com.marmorarias.orders.application;
 
+import com.marmorarias.channels.NotificationPort;
+import com.marmorarias.crm.adapter.persistence.CustomerEntity;
+import com.marmorarias.crm.adapter.persistence.CustomerRepository;
 import com.marmorarias.identity.adapter.persistence.RlsContext;
 import com.marmorarias.identity.domain.TenantContext;
 import com.marmorarias.measurement.adapter.persistence.MeasurementRepository;
@@ -11,18 +14,26 @@ import com.marmorarias.orders.adapter.persistence.CustomerOrderListItem;
 import com.marmorarias.orders.adapter.persistence.CustomerOrderRepository;
 import com.marmorarias.orders.adapter.persistence.StageTransitionEntity;
 import com.marmorarias.orders.adapter.persistence.StageTransitionRepository;
+import com.marmorarias.orders.domain.LimitePedidosExcedidoException;
 import com.marmorarias.orders.domain.OrderState;
 import com.marmorarias.orders.domain.OrderStateMachine;
 import com.marmorarias.orders.domain.TransicaoInvalidaException;
+import com.marmorarias.platformbilling.application.BillingService;
+import com.marmorarias.platformbilling.domain.PlanLimits;
 import com.marmorarias.quoting.adapter.persistence.QuoteVersionEntity;
 import com.marmorarias.quoting.adapter.persistence.QuoteVersionRepository;
 import com.marmorarias.quoting.application.CriarOrcamentoRequest;
 import com.marmorarias.quoting.application.QuoteService;
 import com.marmorarias.quoting.domain.QuoteVersionStatus;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +45,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+
     private final RlsContext rlsContext;
     private final CustomerOrderRepository customerOrderRepository;
     private final StageTransitionRepository stageTransitionRepository;
@@ -41,11 +54,15 @@ public class OrderService {
     private final QuoteVersionRepository quoteVersionRepository;
     private final MeasurementRepository measurementRepository;
     private final QuoteService quoteService;
+    private final CustomerRepository customerRepository;
+    private final NotificationPort notificationPort;
+    private final BillingService billingService;
 
     public OrderService(RlsContext rlsContext, CustomerOrderRepository customerOrderRepository,
                          StageTransitionRepository stageTransitionRepository, AuditLogRepository auditLogRepository,
                          QuoteVersionRepository quoteVersionRepository, MeasurementRepository measurementRepository,
-                         QuoteService quoteService) {
+                         QuoteService quoteService, CustomerRepository customerRepository,
+                         NotificationPort notificationPort, BillingService billingService) {
         this.rlsContext = rlsContext;
         this.customerOrderRepository = customerOrderRepository;
         this.stageTransitionRepository = stageTransitionRepository;
@@ -53,6 +70,9 @@ public class OrderService {
         this.quoteVersionRepository = quoteVersionRepository;
         this.measurementRepository = measurementRepository;
         this.quoteService = quoteService;
+        this.customerRepository = customerRepository;
+        this.notificationPort = notificationPort;
+        this.billingService = billingService;
     }
 
     /**
@@ -93,6 +113,15 @@ public class OrderService {
     @Transactional
     public CustomerOrderEntity criarPedido(TenantContext tenant, UUID customerId, UUID quoteVersionId) {
         rlsContext.setCurrentOrg(tenant.organizationId());
+        String plano = billingService.planoAtual(tenant.organizationId());
+        OffsetDateTime inicioDoMes = YearMonth.now().atDay(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        long pedidosNoMesAtual = customerOrderRepository
+                .countByOrganizationIdAndCreatedAtGreaterThanEqual(tenant.organizationId(), inicioDoMes);
+        if (!PlanLimits.pedidoDentroDoLimite(plano, pedidosNoMesAtual)) {
+            throw new LimitePedidosExcedidoException("Limite de pedidos do plano " + plano + " atingido neste mês ("
+                    + PlanLimits.BASICO_MAX_PEDIDOS_POR_MES + ")");
+        }
+
         CustomerOrderEntity order = new CustomerOrderEntity(tenant.organizationId(), customerId, quoteVersionId);
         order = customerOrderRepository.save(order);
         registrarAuditoria(tenant, order.getId(), "CRIACAO");
@@ -152,6 +181,21 @@ public class OrderService {
         stageTransitionRepository.save(
                 new StageTransitionEntity(tenant.organizationId(), order.getId(), origem, target, tenant.userId(), motivo));
         registrarAuditoria(tenant, order.getId(), "TRANSICAO_" + target);
+        notificarCliente(order, target);
+    }
+
+    /** Canal externo (adapter) — nunca deve derrubar a transição do pedido se o envio falhar. */
+    private void notificarCliente(CustomerOrderEntity order, OrderState target) {
+        try {
+            CustomerEntity customer = customerRepository.findById(order.getCustomerId()).orElse(null);
+            if (customer == null) {
+                return;
+            }
+            notificationPort.notificar(customer.getEmail(),
+                    "Seu pedido mudou de status: agora está em " + target + ".");
+        } catch (RuntimeException e) {
+            log.warn("Falha ao notificar cliente sobre transição do pedido {}: {}", order.getId(), e.getMessage());
+        }
     }
 
     /** Invariante 1: só alcança PRODUCAO com measurement APROVADO e sem revisão de orçamento pendente. */

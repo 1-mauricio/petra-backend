@@ -1,5 +1,7 @@
 package com.marmorarias.common.web;
 
+import com.marmorarias.identity.domain.LimiteUsuariosExcedidoException;
+import com.marmorarias.orders.domain.LimitePedidosExcedidoException;
 import com.marmorarias.orders.domain.TransicaoInvalidaException;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -21,6 +23,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler({TransicaoInvalidaException.class, IllegalStateException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> requisicaoInvalida(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("erro", ex.getMessage()));
+    }
+
+    @ExceptionHandler({LimiteUsuariosExcedidoException.class, LimitePedidosExcedidoException.class})
+    public ResponseEntity<Map<String, String>> limitePlanoExcedido(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(Map.of("erro", ex.getMessage()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
