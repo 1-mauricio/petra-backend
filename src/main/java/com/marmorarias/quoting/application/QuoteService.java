@@ -6,6 +6,7 @@ import com.marmorarias.identity.adapter.persistence.RlsContext;
 import com.marmorarias.identity.domain.TenantContext;
 import com.marmorarias.quoting.adapter.persistence.CatalogItemEntity;
 import com.marmorarias.quoting.adapter.persistence.CatalogItemRepository;
+import com.marmorarias.quoting.adapter.persistence.CatalogItemTipo;
 import com.marmorarias.quoting.adapter.persistence.MaterialEntity;
 import com.marmorarias.quoting.adapter.persistence.MaterialRepository;
 import com.marmorarias.quoting.adapter.persistence.QuoteDetail;
@@ -128,6 +129,50 @@ public class QuoteService {
     public List<CatalogItemEntity> listarCatalogo(TenantContext tenant) {
         rlsContext.setCurrentOrg(tenant.organizationId());
         return catalogItemRepository.findByOrganizationId(tenant.organizationId());
+    }
+
+    @Transactional
+    public MaterialEntity criarMaterial(TenantContext tenant, String tipo, String cor, BigDecimal precoM2,
+                                         BigDecimal larguraChapa, BigDecimal comprimentoChapa) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        return materialRepository.save(new MaterialEntity(tenant.organizationId(), tipo, cor, precoM2, larguraChapa,
+                comprimentoChapa));
+    }
+
+    /** Reajuste aqui não altera orçamentos existentes: QuoteLineItemEntity guarda o preço snapshotado na criação. */
+    @Transactional
+    public MaterialEntity atualizarMaterial(TenantContext tenant, UUID id, BigDecimal precoM2, Boolean ativo) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        MaterialEntity material = materialRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Material não encontrado: " + id));
+        if (precoM2 != null) {
+            material.atualizarPreco(precoM2);
+        }
+        if (ativo != null) {
+            material.definirAtivo(ativo);
+        }
+        return material;
+    }
+
+    @Transactional
+    public CatalogItemEntity criarItemCatalogo(TenantContext tenant, CatalogItemTipo tipo, String descricao,
+                                                UnidadeMedida unidade, BigDecimal preco) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        return catalogItemRepository.save(new CatalogItemEntity(tenant.organizationId(), tipo, descricao, unidade, preco));
+    }
+
+    @Transactional
+    public CatalogItemEntity atualizarItemCatalogo(TenantContext tenant, UUID id, BigDecimal preco, Boolean ativo) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        CatalogItemEntity item = catalogItemRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Item de catálogo não encontrado: " + id));
+        if (preco != null) {
+            item.atualizarPreco(preco);
+        }
+        if (ativo != null) {
+            item.definirAtivo(ativo);
+        }
+        return item;
     }
 
     @Transactional

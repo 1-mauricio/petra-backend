@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class CatalogItemEntity {
 
     @Id
+    @GeneratedValue
     private UUID id;
 
     @Column(name = "organization_id", nullable = false)
@@ -38,6 +40,24 @@ public class CatalogItemEntity {
     private boolean ativo;
 
     protected CatalogItemEntity() {
+    }
+
+    public CatalogItemEntity(UUID organizationId, CatalogItemTipo tipo, String descricao, UnidadeMedida unidade,
+                              BigDecimal preco) {
+        this.organizationId = organizationId;
+        this.tipo = tipo;
+        this.descricao = descricao;
+        this.unidade = unidade;
+        this.preco = preco;
+        this.ativo = true;
+    }
+
+    public void atualizarPreco(BigDecimal preco) {
+        this.preco = preco;
+    }
+
+    public void definirAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     public UUID getId() {

@@ -2,6 +2,7 @@ package com.marmorarias.quoting.adapter.persistence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.UUID;
 public class MaterialEntity {
 
     @Id
+    @GeneratedValue
     private UUID id;
 
     @Column(name = "organization_id", nullable = false)
@@ -34,6 +36,25 @@ public class MaterialEntity {
     private boolean ativo;
 
     protected MaterialEntity() {
+    }
+
+    public MaterialEntity(UUID organizationId, String tipo, String cor, BigDecimal precoM2, BigDecimal larguraChapa,
+                           BigDecimal comprimentoChapa) {
+        this.organizationId = organizationId;
+        this.tipo = tipo;
+        this.cor = cor;
+        this.precoM2 = precoM2;
+        this.larguraChapa = larguraChapa;
+        this.comprimentoChapa = comprimentoChapa;
+        this.ativo = true;
+    }
+
+    public void atualizarPreco(BigDecimal precoM2) {
+        this.precoM2 = precoM2;
+    }
+
+    public void definirAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     public UUID getId() {
