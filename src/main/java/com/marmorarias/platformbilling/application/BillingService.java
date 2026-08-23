@@ -10,6 +10,7 @@ import com.marmorarias.platformbilling.adapter.persistence.WebhookEventRepositor
 import com.marmorarias.platformbilling.config.BillingProperties;
 import com.marmorarias.platformbilling.domain.BillingStatusMapper;
 import com.marmorarias.platformbilling.domain.OrgBillingStatus;
+import com.marmorarias.platformbilling.domain.PlanLimits;
 import com.marmorarias.platformbilling.domain.SubscriptionSnapshot;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -56,10 +57,25 @@ public class BillingService {
 
     @Transactional(readOnly = true)
     public OrgBillingStatus currentStatus(UUID organizationId) {
+        if (billingProperties.overrideAtivo()) {
+            return OrgBillingStatus.ATIVA;
+        }
         rlsContext.setCurrentOrg(organizationId);
         return organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new NoSuchElementException("Organização não encontrada: " + organizationId))
                 .getBillingStatus();
+    }
+
+    /** Sem subscription registrada (ainda não sincronizou webhook) cai no plano mais restrito. */
+    @Transactional(readOnly = true)
+    public String planoAtual(UUID organizationId) {
+        if (billingProperties.overrideAtivo()) {
+            return billingProperties.planoOverride();
+        }
+        rlsContext.setCurrentOrg(organizationId);
+        return subscriptionRepository.findByOrganizationId(organizationId)
+                .map(subscription -> billingProperties.planoForPriceId(subscription.getStripePriceId()))
+                .orElse(PlanLimits.PLANO_BASICO);
     }
 
     /**

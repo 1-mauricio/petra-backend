@@ -35,7 +35,7 @@ class BillingServiceTest {
     @BeforeEach
     void setUp() {
         BillingProperties billingProperties = new BillingProperties("sk_test", "whsec_test", "https://ok",
-                "https://cancel", Map.of());
+                "https://cancel", Map.of(), null);
         billingService = new BillingService(stripeGateway, billingProperties, rlsContext, organizationRepository,
                 subscriptionRepository, webhookEventRepository);
     }
@@ -67,6 +67,21 @@ class BillingServiceTest {
         assertThrows(WebhookSignatureInvalidException.class,
                 () -> billingService.handleWebhookEvent("payload", "sig-ruim"));
         verify(webhookEventRepository, times(0)).save(any());
+    }
+
+    @Test
+    void overrideLocalFixaPlanoEStatusSemConsultarBanco() {
+        BillingProperties comOverride = new BillingProperties("sk_test", "whsec_test", "https://ok",
+                "https://cancel", Map.of(), "pro");
+        BillingService comOverrideService = new BillingService(stripeGateway, comOverride, rlsContext,
+                organizationRepository, subscriptionRepository, webhookEventRepository);
+
+        UUID orgId = UUID.randomUUID();
+        org.junit.jupiter.api.Assertions.assertEquals("pro", comOverrideService.planoAtual(orgId));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                com.marmorarias.platformbilling.domain.OrgBillingStatus.ATIVA, comOverrideService.currentStatus(orgId));
+        verify(organizationRepository, times(0)).findById(any());
+        verify(subscriptionRepository, times(0)).findByOrganizationId(any());
     }
 
     private void markEventAsRecorded(String eventId) {
