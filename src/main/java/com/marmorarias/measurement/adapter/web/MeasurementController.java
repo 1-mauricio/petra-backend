@@ -92,6 +92,13 @@ public class MeasurementController {
         return resultado;
     }
 
+    @PostMapping("/medicoes/{id}/rejeitar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('admin', 'producao')")
+    public void rejeitar(@PathVariable UUID id) {
+        measurementService.rejeitarMedicao(currentTenant.get(), id);
+    }
+
     private CriarOrcamentoRequest paraOrcamentoRevisado(UUID customerId, List<MeasurementPieceEntity> pecasMedidas,
                                                           AprovarMedicaoRequest request) {
         List<PecaRequest> pecas = pecasMedidas.stream()

@@ -146,6 +146,15 @@ public class MeasurementService {
         return new MeasurementApprovalResult(measurement, pecas, valorRecalculado, divergencia);
     }
 
+    @Transactional
+    public MeasurementEntity rejeitarMedicao(TenantContext tenant, UUID measurementId) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        MeasurementEntity measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new NoSuchElementException("Medição não encontrada: " + measurementId));
+        measurement.rejeitar();
+        return measurement;
+    }
+
     private BigDecimal recalcular(List<MeasurementPieceEntity> pecasMedidas, AprovarMedicaoRequest request) {
         Map<String, MaterialSnapshot> materiais = new HashMap<>();
         List<UUID> materialIds = pecasMedidas.stream().map(MeasurementPieceEntity::getMaterialId).distinct().toList();

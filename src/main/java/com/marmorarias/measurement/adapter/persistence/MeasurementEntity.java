@@ -83,4 +83,11 @@ public class MeasurementEntity {
         this.status = MeasurementStatus.APROVADO;
         this.approvedAt = Instant.now();
     }
+
+    public void rejeitar() {
+        if (status != MeasurementStatus.PENDENTE) {
+            throw new IllegalStateException("measurement " + id + " não pode ser rejeitado a partir de " + status);
+        }
+        this.status = MeasurementStatus.REJEITADO;
+    }
 }
