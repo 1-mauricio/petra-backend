@@ -39,6 +39,15 @@ public class UserProfileEntity {
     protected UserProfileEntity() {
     }
 
+    public UserProfileEntity(UUID id, UUID organizationId, Role role, String nome, String email) {
+        this.id = id;
+        this.organizationId = organizationId;
+        this.role = role;
+        this.nome = nome;
+        this.email = email;
+        this.ativo = true;
+    }
+
     public UUID getId() {
         return id;
     }
