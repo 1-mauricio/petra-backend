@@ -3,6 +3,7 @@ package com.marmorarias.common.web;
 import com.marmorarias.identity.domain.LimiteUsuariosExcedidoException;
 import com.marmorarias.orders.domain.LimitePedidosExcedidoException;
 import com.marmorarias.orders.domain.TransicaoInvalidaException;
+import com.marmorarias.quoting.domain.DescontoExigeAdminException;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,6 +29,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler({LimiteUsuariosExcedidoException.class, LimitePedidosExcedidoException.class})
     public ResponseEntity<Map<String, String>> limitePlanoExcedido(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(Map.of("erro", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DescontoExigeAdminException.class)
+    public ResponseEntity<Map<String, String>> descontoExigeAdmin(DescontoExigeAdminException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("erro", ex.getMessage()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

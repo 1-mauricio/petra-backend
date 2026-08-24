@@ -37,6 +37,12 @@ public class TestFixtures {
                 toleranciaPerc, toleranciaAbs, orgId));
     }
 
+    public void ajustarLimiteDesconto(UUID orgId, BigDecimal descontoLimitePerc) {
+        executarNaOrg(orgId, con -> executar(con,
+                "UPDATE org_settings SET desconto_limite_perc = ? WHERE organization_id = ?",
+                descontoLimitePerc, orgId));
+    }
+
     public UUID criarUsuario(UUID orgId, String role) {
         UUID id = UUID.randomUUID();
         executarNaOrg(orgId, con -> executar(con,

@@ -2,7 +2,10 @@ package com.marmorarias.quoting.application;
 
 import com.marmorarias.crm.adapter.persistence.CustomerEntity;
 import com.marmorarias.crm.adapter.persistence.CustomerRepository;
+import com.marmorarias.identity.adapter.persistence.OrgSettingsEntity;
+import com.marmorarias.identity.adapter.persistence.OrgSettingsRepository;
 import com.marmorarias.identity.adapter.persistence.RlsContext;
+import com.marmorarias.identity.domain.Role;
 import com.marmorarias.identity.domain.TenantContext;
 import com.marmorarias.quoting.adapter.persistence.CatalogItemEntity;
 import com.marmorarias.quoting.adapter.persistence.CatalogItemRepository;
@@ -28,6 +31,7 @@ import com.marmorarias.quoting.domain.OrcamentoCalculator.OrcamentoParams;
 import com.marmorarias.quoting.domain.OrcamentoCalculator.OrcamentoResultado;
 import com.marmorarias.quoting.domain.OrcamentoCalculator.Peca;
 import com.marmorarias.quoting.domain.OrcamentoCalculator.Recorte;
+import com.marmorarias.quoting.domain.DescontoExigeAdminException;
 import com.marmorarias.quoting.domain.QuoteVersionStatus;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -57,11 +61,12 @@ public class QuoteService {
     private final MaterialRepository materialRepository;
     private final CatalogItemRepository catalogItemRepository;
     private final CustomerRepository customerRepository;
+    private final OrgSettingsRepository orgSettingsRepository;
 
     public QuoteService(RlsContext rlsContext, QuoteRepository quoteRepository,
                          QuoteVersionRepository quoteVersionRepository, QuoteLineItemRepository quoteLineItemRepository,
                          MaterialRepository materialRepository, CatalogItemRepository catalogItemRepository,
-                         CustomerRepository customerRepository) {
+                         CustomerRepository customerRepository, OrgSettingsRepository orgSettingsRepository) {
         this.rlsContext = rlsContext;
         this.quoteRepository = quoteRepository;
         this.quoteVersionRepository = quoteVersionRepository;
@@ -69,6 +74,7 @@ public class QuoteService {
         this.materialRepository = materialRepository;
         this.catalogItemRepository = catalogItemRepository;
         this.customerRepository = customerRepository;
+        this.orgSettingsRepository = orgSettingsRepository;
     }
 
     @Transactional(readOnly = true)
@@ -297,7 +303,22 @@ public class QuoteService {
         return versao;
     }
 
+    /** Invariante: desconto acima do limite configurado só pode ser concedido por um admin. */
+    private void validarLimiteDesconto(TenantContext tenant, BigDecimal desconto) {
+        if (desconto == null || desconto.signum() <= 0 || tenant.role() == Role.admin) {
+            return;
+        }
+        OrgSettingsEntity settings = orgSettingsRepository.findById(tenant.organizationId())
+                .orElseThrow(() -> new NoSuchElementException("org_settings não encontrado"));
+        BigDecimal descontoPerc = desconto.multiply(BigDecimal.valueOf(100));
+        if (descontoPerc.compareTo(settings.getDescontoLimitePerc()) > 0) {
+            throw new DescontoExigeAdminException("Desconto de " + descontoPerc + "% acima do limite de "
+                    + settings.getDescontoLimitePerc() + "% exige aprovação de um admin");
+        }
+    }
+
     private OrcamentoResultado calcular(TenantContext tenant, CriarOrcamentoRequest request) {
+        validarLimiteDesconto(tenant, request.desconto());
         CatalogoSnapshot catalogo = carregarCatalogo(request);
         List<Peca> pecas = request.pecas().stream().map(this::paraPeca).toList();
 
