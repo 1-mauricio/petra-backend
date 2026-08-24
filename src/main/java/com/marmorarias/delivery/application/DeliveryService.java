@@ -6,6 +6,9 @@ import com.marmorarias.delivery.adapter.persistence.DeliveryRepository;
 import com.marmorarias.delivery.domain.DeliveryStatus;
 import com.marmorarias.identity.adapter.persistence.RlsContext;
 import com.marmorarias.identity.domain.TenantContext;
+import com.marmorarias.production.adapter.persistence.ProductionTaskEntity;
+import com.marmorarias.production.adapter.persistence.ProductionTaskRepository;
+import com.marmorarias.production.domain.ProductionTaskStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -19,16 +22,26 @@ public class DeliveryService {
     private final RlsContext rlsContext;
     private final DeliveryRepository deliveryRepository;
     private final StoragePort storagePort;
+    private final ProductionTaskRepository productionTaskRepository;
 
-    public DeliveryService(RlsContext rlsContext, DeliveryRepository deliveryRepository, StoragePort storagePort) {
+    public DeliveryService(RlsContext rlsContext, DeliveryRepository deliveryRepository, StoragePort storagePort,
+                            ProductionTaskRepository productionTaskRepository) {
         this.rlsContext = rlsContext;
         this.deliveryRepository = deliveryRepository;
         this.storagePort = storagePort;
+        this.productionTaskRepository = productionTaskRepository;
     }
 
+    /** Guard: só agenda entrega com produção "pronta" — ao menos uma tarefa e todas CONCLUIDA. */
     @Transactional
     public DeliveryEntity agendar(TenantContext tenant, UUID orderId, Instant dataAgendada) {
         rlsContext.setCurrentOrg(tenant.organizationId());
+        List<ProductionTaskEntity> tarefas = productionTaskRepository.findByOrderId(orderId);
+        boolean pronta = !tarefas.isEmpty()
+                && tarefas.stream().allMatch(t -> t.getStatus() == ProductionTaskStatus.CONCLUIDA);
+        if (!pronta) {
+            throw new IllegalStateException("Produção ainda não concluída para este pedido");
+        }
         return deliveryRepository.save(new DeliveryEntity(tenant.organizationId(), orderId, dataAgendada));
     }
 
