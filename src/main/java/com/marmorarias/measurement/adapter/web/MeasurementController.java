@@ -11,11 +11,13 @@ import com.marmorarias.measurement.application.MeasurementService;
 import com.marmorarias.measurement.application.RegistrarMedicaoCampoRequest;
 import com.marmorarias.measurement.application.RegistrarMedicaoCampoResponse;
 import com.marmorarias.measurement.application.RegistrarMedicaoRequest;
+import com.marmorarias.measurement.application.PecaMedidaRequest;
 import com.marmorarias.orders.adapter.persistence.CustomerOrderEntity;
 import com.marmorarias.orders.adapter.persistence.CustomerOrderRepository;
 import com.marmorarias.orders.application.OrderService;
 import com.marmorarias.quoting.application.CriarOrcamentoRequest;
 import com.marmorarias.quoting.application.PecaRequest;
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -57,6 +59,34 @@ public class MeasurementController {
     public MeasurementEntity registrar(@RequestBody RegistrarMedicaoRequest request) {
         TenantContext tenant = currentTenant.get();
         return measurementService.registrarMedicao(tenant, request.orderId(), tenant.userId(), request.pecas());
+    }
+
+    public record AgendarMedicaoRequest(UUID orderId, UUID tecnicoResponsavel, Instant dataAgendada) {
+    }
+
+    public record ConcluirMedicaoRequest(List<PecaMedidaRequest> pecas) {
+    }
+
+    /** Primeiro estágio do fluxo de campo: agenda a visita, sem peças ainda. */
+    @PostMapping("/medicoes/agendar")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('admin', 'producao')")
+    public MeasurementEntity agendar(@RequestBody AgendarMedicaoRequest request) {
+        TenantContext tenant = currentTenant.get();
+        UUID tecnico = request.tecnicoResponsavel() != null ? request.tecnicoResponsavel() : tenant.userId();
+        return measurementService.agendarMedicao(tenant, request.orderId(), tecnico, request.dataAgendada());
+    }
+
+    @PostMapping("/medicoes/{id}/iniciar")
+    @PreAuthorize("hasAnyRole('admin', 'producao')")
+    public MeasurementEntity iniciar(@PathVariable UUID id) {
+        return measurementService.iniciarCampo(currentTenant.get(), id);
+    }
+
+    @PostMapping("/medicoes/{id}/concluir")
+    @PreAuthorize("hasAnyRole('admin', 'producao')")
+    public MeasurementEntity concluir(@PathVariable UUID id, @RequestBody ConcluirMedicaoRequest request) {
+        return measurementService.concluirMedicao(currentTenant.get(), id, request.pecas());
     }
 
     /** Endpoint que o medicao-pwa chama ao sincronizar (ver medicao-pwa/sync.js). */

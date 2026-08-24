@@ -10,6 +10,7 @@ public record MeasurementListItem(
         UUID id,
         UUID orderId,
         MeasurementStatus status,
+        Instant dataAgendada,
         Instant dataMedicao,
         UUID tecnicoResponsavel,
         Instant approvedAt,

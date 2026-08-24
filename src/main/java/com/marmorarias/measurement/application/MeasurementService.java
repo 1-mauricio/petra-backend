@@ -26,6 +26,7 @@ import com.marmorarias.quoting.domain.OrcamentoCalculator.OrcamentoParams;
 import com.marmorarias.quoting.domain.OrcamentoCalculator.Peca;
 import com.marmorarias.quoting.domain.QuoteVersionStatus;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,8 +71,8 @@ public class MeasurementService {
                     .map(p -> new MeasurementListItem.Peca(p.getId(), p.getDescricao(), p.getLarguraM(),
                             p.getComprimentoM(), p.getQuantidade(), p.getAreaM2()))
                     .toList();
-            resultado.add(new MeasurementListItem(m.getId(), m.getOrderId(), m.getStatus(), m.getDataMedicao(),
-                    m.getTecnicoResponsavel(), m.getApprovedAt(), pecas));
+            resultado.add(new MeasurementListItem(m.getId(), m.getOrderId(), m.getStatus(), m.getDataAgendada(),
+                    m.getDataMedicao(), m.getTecnicoResponsavel(), m.getApprovedAt(), pecas));
         }
         return resultado;
     }
@@ -112,6 +113,39 @@ public class MeasurementService {
 
     private static BigDecimal cmParaM(BigDecimal cm) {
         return cm == null ? null : cm.divide(BigDecimal.valueOf(100));
+    }
+
+    /** Agenda a visita técnica (sem peças ainda) — primeiro estágio do fluxo de campo. */
+    @Transactional
+    public MeasurementEntity agendarMedicao(TenantContext tenant, UUID orderId, UUID tecnicoResponsavel,
+                                             Instant dataAgendada) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        return measurementRepository.save(
+                new MeasurementEntity(tenant.organizationId(), orderId, tecnicoResponsavel, dataAgendada));
+    }
+
+    @Transactional
+    public MeasurementEntity iniciarCampo(TenantContext tenant, UUID measurementId) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        MeasurementEntity measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new NoSuchElementException("Medição não encontrada: " + measurementId));
+        measurement.iniciarCampo();
+        return measurement;
+    }
+
+    /** Anexa as peças medidas em campo e conclui a medição — libera para aprovação/rejeição. */
+    @Transactional
+    public MeasurementEntity concluirMedicao(TenantContext tenant, UUID measurementId, List<PecaMedidaRequest> pecas) {
+        rlsContext.setCurrentOrg(tenant.organizationId());
+        MeasurementEntity measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new NoSuchElementException("Medição não encontrada: " + measurementId));
+        for (PecaMedidaRequest peca : pecas) {
+            measurementPieceRepository.save(new MeasurementPieceEntity(tenant.organizationId(), measurement.getId(),
+                    peca.materialId(), peca.descricao(), peca.larguraM(), peca.comprimentoM(), peca.quantidade(),
+                    peca.fatorPerdaAplicado()));
+        }
+        measurement.concluir();
+        return measurement;
     }
 
     /**
