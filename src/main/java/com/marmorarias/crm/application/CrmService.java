@@ -79,7 +79,7 @@ public class CrmService {
         return leadRepository.listarComCliente(tenant.organizationId());
     }
 
-    /** Transição livre de status (ex.: ABERTO -> EM_NEGOCIACAO); PERDIDO exige motivo (ver marcarLeadPerdido). */
+    /** Transição livre de status (ex.: NOVO -> CONTATADO -> QUALIFICADO); PERDIDO exige motivo (ver marcarLeadPerdido). */
     @Transactional
     public LeadEntity moverStatus(TenantContext tenant, UUID leadId, LeadStatus status, String motivoPerda) {
         rlsContext.setCurrentOrg(tenant.organizationId());
@@ -93,11 +93,11 @@ public class CrmService {
     }
 
     @Transactional
-    public LeadEntity marcarLeadGanho(TenantContext tenant, UUID leadId) {
+    public LeadEntity marcarLeadConvertido(TenantContext tenant, UUID leadId) {
         rlsContext.setCurrentOrg(tenant.organizationId());
         LeadEntity lead = leadRepository.findById(leadId)
                 .orElseThrow(() -> new NoSuchElementException("Lead não encontrado: " + leadId));
-        lead.marcarGanho();
+        lead.marcarConvertido();
         return lead;
     }
 

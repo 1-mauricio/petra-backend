@@ -47,7 +47,7 @@ public class LeadEntity {
         this.organizationId = organizationId;
         this.customerId = customerId;
         this.origem = origem;
-        this.status = LeadStatus.ABERTO;
+        this.status = LeadStatus.NOVO;
     }
 
     public UUID getId() {
@@ -90,7 +90,7 @@ public class LeadEntity {
         this.motivoPerda = motivo;
     }
 
-    public void marcarGanho() {
-        this.status = LeadStatus.GANHO;
+    public void marcarConvertido() {
+        this.status = LeadStatus.CONVERTIDO;
     }
 }

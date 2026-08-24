@@ -1,9 +1,10 @@
 package com.marmorarias.crm.domain;
 
-/** Espelha o enum lead_status do Postgres (V1). */
+/** Espelha o enum lead_status do Postgres (V1, migrado em V22). */
 public enum LeadStatus {
-    ABERTO,
-    EM_NEGOCIACAO,
-    GANHO,
+    NOVO,
+    CONTATADO,
+    QUALIFICADO,
+    CONVERTIDO,
     PERDIDO
 }
