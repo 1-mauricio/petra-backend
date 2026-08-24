@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
-        run: curl -sf https://petra-backend-wl06.onrender.com/actuator/health
+        run: curl -sf https://petra-backend-awzz.onrender.com/actuator/health
