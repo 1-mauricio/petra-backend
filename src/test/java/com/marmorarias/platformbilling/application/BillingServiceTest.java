@@ -44,7 +44,7 @@ class BillingServiceTest {
     void webhookIdempotente_mesmoEventIdDuasVezes_umEfeito() throws Exception {
         UUID orgId = UUID.randomUUID();
         SubscriptionSnapshot snapshot = new SubscriptionSnapshot(orgId, "sub_1", "cus_1", "price_1", "active",
-                Instant.now());
+                Instant.now(), "basico");
         ParsedWebhookEvent event = new ParsedWebhookEvent("evt_1", "customer.subscription.updated", snapshot);
         when(stripeGateway.parseWebhookEvent(any(), any())).thenReturn(event);
         when(organizationRepository.findById(orgId)).thenReturn(Optional.of(newOrg(orgId)));

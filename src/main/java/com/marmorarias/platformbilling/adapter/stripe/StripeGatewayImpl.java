@@ -7,6 +7,7 @@ import com.marmorarias.platformbilling.application.WebhookSignatureInvalidExcept
 import com.marmorarias.platformbilling.config.BillingProperties;
 import com.marmorarias.platformbilling.domain.SubscriptionSnapshot;
 import com.stripe.Stripe;
+import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
@@ -18,7 +19,6 @@ import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import jakarta.annotation.PostConstruct;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -79,10 +79,22 @@ public class StripeGatewayImpl implements StripeGateway {
      * organization_id vem do metadata setado em createCheckoutSession. Eventos sem
      * esse metadata (ex.: subscription criada fora do fluxo de checkout) são
      * ignorados — sem forma segura de resolver o tenant a partir só do evento.
+     *
+     * getObject() só deserializa quando a api_version do evento bate com a
+     * pinada na lib (Stripe.API_VERSION); numa conta com API mais nova que o
+     * SDK isso vem sempre vazio. deserializeUnsafe() ignora esse match — os
+     * campos usados aqui (id, metadata, items, status) são estáveis entre
+     * versões, então é seguro usar como fallback.
      */
     private SubscriptionSnapshot extractSubscriptionSnapshot(Event event) {
-        Optional<StripeObject> dataObject = event.getDataObjectDeserializer().getObject();
-        if (dataObject.isEmpty() || !(dataObject.get() instanceof Subscription subscription)) {
+        StripeObject dataObject = event.getDataObjectDeserializer().getObject().orElseGet(() -> {
+            try {
+                return event.getDataObjectDeserializer().deserializeUnsafe();
+            } catch (EventDataObjectDeserializationException e) {
+                return null;
+            }
+        });
+        if (!(dataObject instanceof Subscription subscription)) {
             return null;
         }
         String organizationIdRaw = subscription.getMetadata() == null ? null
@@ -97,6 +109,7 @@ public class StripeGatewayImpl implements StripeGateway {
                 : Instant.ofEpochSecond(firstItem.getCurrentPeriodEnd());
 
         return new SubscriptionSnapshot(UUID.fromString(organizationIdRaw), subscription.getId(),
-                subscription.getCustomer(), priceId, subscription.getStatus(), currentPeriodEnd);
+                subscription.getCustomer(), priceId, subscription.getStatus(), currentPeriodEnd,
+                billingProperties.planoForPriceId(priceId));
     }
 }

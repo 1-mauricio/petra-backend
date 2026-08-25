@@ -74,7 +74,7 @@ public class BillingService {
         }
         rlsContext.setCurrentOrg(organizationId);
         return subscriptionRepository.findByOrganizationId(organizationId)
-                .map(subscription -> billingProperties.planoForPriceId(subscription.getStripePriceId()))
+                .map(SubscriptionEntity::getPlano)
                 .orElse(PlanLimits.PLANO_BASICO);
     }
 
@@ -105,11 +105,12 @@ public class BillingService {
                 .orElse(null);
         if (subscription == null) {
             subscription = new SubscriptionEntity(snapshot.organizationId(), snapshot.stripeSubscriptionId(),
-                    snapshot.stripePriceId(), snapshot.stripeStatus(), snapshot.currentPeriodEnd());
+                    snapshot.stripePriceId(), snapshot.stripeStatus(), snapshot.currentPeriodEnd(), snapshot.plano());
         } else {
             subscription.setStripePriceId(snapshot.stripePriceId());
             subscription.setStripeStatus(snapshot.stripeStatus());
             subscription.setCurrentPeriodEnd(snapshot.currentPeriodEnd());
+            subscription.setPlano(snapshot.plano());
         }
         subscriptionRepository.save(subscription);
 

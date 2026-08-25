@@ -31,16 +31,20 @@ public class SubscriptionEntity {
     @Column(name = "current_period_end")
     private Instant currentPeriodEnd;
 
+    @Column(name = "plano", nullable = false)
+    private String plano;
+
     protected SubscriptionEntity() {
     }
 
     public SubscriptionEntity(UUID organizationId, String stripeSubscriptionId, String stripePriceId,
-                               String stripeStatus, Instant currentPeriodEnd) {
+                               String stripeStatus, Instant currentPeriodEnd, String plano) {
         this.organizationId = organizationId;
         this.stripeSubscriptionId = stripeSubscriptionId;
         this.stripePriceId = stripePriceId;
         this.stripeStatus = stripeStatus;
         this.currentPeriodEnd = currentPeriodEnd;
+        this.plano = plano;
     }
 
     public UUID getId() {
@@ -77,5 +81,13 @@ public class SubscriptionEntity {
 
     public void setCurrentPeriodEnd(Instant currentPeriodEnd) {
         this.currentPeriodEnd = currentPeriodEnd;
+    }
+
+    public String getPlano() {
+        return plano;
+    }
+
+    public void setPlano(String plano) {
+        this.plano = plano;
     }
 }

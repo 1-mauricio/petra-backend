@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/billing")
@@ -27,13 +28,14 @@ public class CheckoutSessionController {
     public record CheckoutSessionResponse(String url) {
     }
 
-    public record BillingStatusResponse(OrgBillingStatus status) {
+    public record BillingStatusResponse(OrgBillingStatus status, String plano) {
     }
 
     @GetMapping("/status")
     public BillingStatusResponse status(JwtAuthenticationToken authentication) {
         Jwt jwt = authentication.getToken();
-        return new BillingStatusResponse(billingService.currentStatus(AuthenticatedOrg.orgId(jwt)));
+        UUID orgId = AuthenticatedOrg.orgId(jwt);
+        return new BillingStatusResponse(billingService.currentStatus(orgId), billingService.planoAtual(orgId));
     }
 
     @PostMapping("/checkout-session")

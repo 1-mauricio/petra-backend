@@ -37,4 +37,8 @@ public class WebhookEventEntity {
     public String getEventType() {
         return eventType;
     }
+
+    public Instant getProcessedAt() {
+        return processedAt;
+    }
 }
