@@ -45,6 +45,13 @@ public class BillingAccessGateFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Admin da plataforma (staff Petra) não tem org_id no token — nunca sujeito ao gate de
+        // assinatura de uma organização, já que não pertence a nenhuma.
+        if (Boolean.TRUE.equals(jwt.getClaimAsBoolean("is_platform_admin"))) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         OrgBillingStatus status = billingService.currentStatus(AuthenticatedOrg.orgId(jwt));
         if (!AccessGate.isWriteAllowed(status)) {
             response.setStatus(HttpServletResponse.SC_PAYMENT_REQUIRED);

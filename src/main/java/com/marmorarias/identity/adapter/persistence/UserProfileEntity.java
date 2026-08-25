@@ -71,4 +71,16 @@ public class UserProfileEntity {
     public boolean isAtivo() {
         return ativo;
     }
+
+    public void atualizar(Role role, String nome, Boolean ativo) {
+        if (role != null) {
+            this.role = role;
+        }
+        if (nome != null) {
+            this.nome = nome;
+        }
+        if (ativo != null) {
+            this.ativo = ativo;
+        }
+    }
 }

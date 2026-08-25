@@ -22,7 +22,11 @@ public class TenantContextLoggingFilter extends OncePerRequestFilter {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-                MDC.put("org_id", jwt.getClaimAsString("org_id"));
+                // Admin da plataforma não tem org_id (sem organização própria).
+                String orgId = jwt.getClaimAsString("org_id");
+                if (orgId != null) {
+                    MDC.put("org_id", orgId);
+                }
                 MDC.put("user_id", jwt.getSubject());
             }
             chain.doFilter(request, response);

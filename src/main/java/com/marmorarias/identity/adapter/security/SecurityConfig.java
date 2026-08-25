@@ -88,6 +88,9 @@ public class SecurityConfig {
     }
 
     private List<GrantedAuthority> authoritiesFromRoleClaim(Jwt jwt) {
+        if (Boolean.TRUE.equals(jwt.getClaimAsBoolean("is_platform_admin"))) {
+            return List.of(new SimpleGrantedAuthority("ROLE_platform_admin"));
+        }
         String role = jwt.getClaimAsString("role");
         if (role == null) {
             return List.of();

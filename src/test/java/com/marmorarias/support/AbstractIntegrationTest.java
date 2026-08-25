@@ -38,6 +38,19 @@ public abstract class AbstractIntegrationTest {
                     END
                     $$;
                     """.formatted(APP_USER_PASSWORD));
+            // Em produção essas roles são provisionadas pelo próprio Supabase; aqui simulamos sua
+            // existência para as migrations (V15, V27) que dão GRANT/policy a elas funcionarem.
+            for (String role : new String[] {"supabase_auth_admin", "anon", "authenticated"}) {
+                statement.execute("""
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '%s') THEN
+                                CREATE ROLE %s NOLOGIN;
+                            END IF;
+                        END
+                        $$;
+                        """.formatted(role, role));
+            }
         } catch (Exception e) {
             throw new IllegalStateException("Falha ao preparar role app_user no Postgres de teste", e);
         }
